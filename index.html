@@ -1,0 +1,247 @@
+<html>
+
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+        rel="stylesheet">
+    <style>
+        /* padding: 2em; */
+
+        html {
+            background-color: #202021;
+            font-family: 'DM Sans', sans-serif;
+            color: white;
+            font-size: 1.8em;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        input {
+            height: 2em;
+            font-size: 0.6em;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            flex-wrap: wrap;
+            /* flex */
+        }
+
+        form section#images {
+            display: flex;
+            /* flex-direction: row; */
+            gap: 0em 2em;
+            flex-wrap: wrap;
+            margin-bottom: 0em;
+        }
+
+        div.image-input {
+            display: flex;
+            flex-direction: column;
+            flex-wrap: wrap;
+        }
+
+        div.image-input label,
+        input {
+            margin-bottom: 0.5em;
+        }
+
+        input#palette-n {
+            width: 5em;
+        }
+
+        div#settings-row {
+            display: flex;
+            /* flex-direction: row; */
+            gap: 0em 2em;
+            flex-wrap: wrap;
+        }
+
+        section#settings h4 {
+            margin-bottom: 0em;
+        }
+
+        section#settings {
+            margin-bottom: 1em;
+        }
+
+        button#transform {
+            background: #684cb0;
+            font-size: 1.3em;
+            color: #fff;
+            border: none;
+            transition: .2s;
+            min-width: fit-content;
+            height: 2em;
+            width: 30%;
+            /* align-self: center; */
+        }
+
+        button#transform:hover {
+            background: #ac57ff;
+            transition: .2s;
+            cursor: pointer
+        }
+
+        hr {
+            height: 1px;
+            color: white;
+            width: 100%;
+            background-color: white;
+            margin-bottom: 2em;
+        }
+
+        h3#progress-type {
+            margin-bottom: 0;
+            font-weight: 400;
+        }
+
+        h4#progress-amount {
+            margin-top: 0;
+            font-weight: 400;
+            color: #fc0;
+        }
+
+        #image-container #result {
+            max-width: 100%;
+            max-height: 400px;
+
+            object-fit: contain;
+        }
+
+        /* img#result {
+            object-fit: contain;
+            max-width: 80%;
+            max-height: auto;
+        } */
+    </style>
+</head>
+
+<body>
+    <main>
+        <h1>
+            the color picker
+        </h1>
+        <form>
+            <section id="images">
+                <div class="image-input" id="original-image">
+                    <label for="original">Original Image: </label>
+                    <input type="file" id="original" accept="image/png,image/webp,image/tiff,image/webp">
+                    <input type="text" placeholder="Image URL">
+                </div>
+                <div class="image-input" id="color-source">
+                    <label for="source">Color Source Image: </label>
+                    <input type="file" id="source" accept="image/png,image/webp,image/tiff,image/webp">
+                    <input type="text" placeholder="Image URL">
+                </div>
+            </section>
+            <section id="settings">
+                <h4>
+                    Settings
+                </h4>
+                <div id="settings-row">
+                    <div>
+                        <label for="palette-n"># of colors to extract </label>
+                        <input type="number" id="palette-n" value="8" min="1" max="255">
+                    </div>
+                    <div>
+                        <label for="dither-method">color correction method</label>
+                        <select id="dither-method">
+                            <option selected value="none">None</option>
+                            <option value="floyd-steinberg">Floyd-Steinberg</option>
+                            <option value="pattern-2x2">Pattern (2x2)</option>
+                            <option value="pattern-4x4">Pattern (4x4)</option>
+                            <option value="pattern-8x8">Pattern (8x8)</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+            <button type="submit" id="transform">Transform!</button>
+        </form>
+        <hr>
+        <h3 id="progress-type" style="color:#fc0; display: none;">processing...</h3>
+        <!-- <h4 id="progress-amount">100%</h4> -->
+        <div id="image-container">
+            <img id="result"></img>
+        </div>
+    
+    </main>
+
+    <script type="module">
+        import init, { process } from "./pkg/weird_flags_wasm.js";
+
+        async function run() {
+            await init();
+            // document.addEventListener('DOMContentLoaded', () => {
+            const form = document.querySelector('form');
+            console.log("hey???")
+            form.addEventListener('submit', async event => {
+                event.preventDefault();
+                let progress_type = document.getElementById('progress-type');
+                let result_element = document.getElementById('result');
+                result_element.removeAttribute('src');
+                progress_type.style.display = 'block';
+
+
+
+                let original = await get_image('original-image');
+                let color_source = await get_image('color-source');
+
+                let colors_to_extract = parseInt(document.getElementById('palette-n').getAttribute('value'));
+                let dither_method = document.getElementById('dither-method').value;
+                console.log(dither_method);
+
+                // let progress_amount = document.getElementById('progress-amount');
+                let result_image = process(original, color_source, colors_to_extract, 4, dither_method, function (stage, progress) {
+                    console.log(stage, progress);
+                });
+                progress_type.style.display = 'none';
+
+                //     progress_type.innerHTML = stage;
+                //     progress_amount.innerHTML = progress;
+                //     progress_amount.style.display = "none";
+                //     progress_amount.style.display = "block";
+
+                //     // console.log(progress);
+                //     // console.log(document.getElementById('progress-type'));
+                //     // document.getElementById('progress-type').innerHTML = stage;
+                //     // document.getElementById('progress-amount').innerHTML = progress;
+                //  });
+                let blob = new Blob([result_image], { 'type': 'image/png' });
+                let url = URL.createObjectURL(blob);
+                result_element.setAttribute('src', url);
+            })
+            // });
+
+        }
+
+
+        async function get_image(input_id) {
+            const container = document.getElementById(input_id);
+            const url = container.querySelector("input[type='text']").value;
+            const file_input = container.querySelector("input[type='file']");
+
+            if (url) {
+                const res = await fetch(url);
+                return new Uint8Array(await res.arrayBuffer());
+            } else {
+                let file = file_input.files[0];
+                return new Uint8Array(await file.arrayBuffer());
+            }
+        }
+
+        run();
+
+    </script>
+</body>
+
+</html>
